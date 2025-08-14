@@ -5,7 +5,6 @@ import requests
 #test push
 WEKAN_URL = os.getenv("WEKAN_URL", "http://localhost/users/login")
 
-
 class TestUserLogin(unittest.TestCase):
 
     def test_user_login_success(self):
