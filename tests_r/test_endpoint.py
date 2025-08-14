@@ -2,6 +2,7 @@ import os
 import unittest
 import requests
 
+
 #test push
 WEKAN_URL = os.getenv("WEKAN_URL", "http://localhost/users/login")
 
