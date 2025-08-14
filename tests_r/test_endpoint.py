@@ -5,6 +5,7 @@ import requests
 #test push
 WEKAN_URL = os.getenv("WEKAN_URL", "http://localhost/users/login")
 
+
 class TestUserLogin(unittest.TestCase):
 
     def test_user_login_success(self):
@@ -56,7 +57,6 @@ class TestUserLogin(unittest.TestCase):
         self.assertEqual(response.status_code, 400)  # או 404 בהתאם למימוש
         self.assertIn("error", response.json())
 
-# ana btal
 if __name__ == "__main__":
     unittest.main()
 
