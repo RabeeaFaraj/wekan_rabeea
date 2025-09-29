@@ -34,14 +34,13 @@ class TestUserLogin(unittest.TestCase):
             "password": "wrongpassword"
         }
         response = requests.post(WEKAN_URL, json=payload)
-        self.assertEqual(response.status_code, 400)  # או 400 בהתאם למימוש
+        self.assertEqual(response.status_code, 400)
         self.assertIn("error", response.json())
 
     def test_user_login_missing_fields(self):
 
         payload = {
             "username": "rabeeaFaraj"
-            # חסר שדה סיסמה
         }
         response = requests.post(WEKAN_URL, json=payload)
         self.assertEqual(response.status_code, 400)
@@ -55,7 +54,7 @@ class TestUserLogin(unittest.TestCase):
         }
         response = requests.post(WEKAN_URL, json=payload)
 
-        self.assertEqual(response.status_code, 400)  # או 404 בהתאם למימוש
+        self.assertEqual(response.status_code, 400)
         self.assertIn("error", response.json())
 
 if __name__ == "__main__":
