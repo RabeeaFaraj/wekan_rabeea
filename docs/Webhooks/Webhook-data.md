@@ -285,7 +285,7 @@ Webhooks that are raised on board events
 
 Webhooks that are raised on list events
 
-### Create list 
+### Create list
 
 ```json
 {
@@ -342,7 +342,7 @@ Webhooks that are raised on list events
   "text": "{{wekan-username}} Swimlane \"{{swimlane-name}}\" at board \"{{board-name}}\" moved to Archive\nhttp://{{wekan-host}}/b/{{board-id}}/{{board-name}}",
   "boardId": "{{board-id}}",
   "user": "{{wekan-username}}",
-  "swimlaneId": "{{swimlane-id}",
+  "swimlaneId": "{{swimlane-id}}",
   "description": "act-archivedSwimlane"
 }
 ```

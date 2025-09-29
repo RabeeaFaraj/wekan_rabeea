@@ -23,7 +23,7 @@ Transifex to be translated (the refresh may take a few hours).
 
 Then in your JADE files, use the string like so:
 
-`h3.card-details-item-title {{_ 'members'}}`
+`h3.card-details-item-title {{ site.data.translations.members }}`
 
 We pull all translations from Transifex before every new Wekan release
 candidate, ask the translators to review the app, and pull all translations
@@ -41,25 +41,25 @@ index ee31d76be..e3b2ea7cd 100644
              h3.card-details-item-title
                i.fa.fa-repeat
 -              | Recurrence
-+              | {{_ 'recurrence'}}
++              | {{ site.data.translations.recurrence }}
              label
                input.js-recurring-checkbox(type="checkbox" checked=card.isRecurring)
 -              |  Repeat this card
-+              |  {{_ 'repeat-this-card'}}
++              |  {{ site.data.translations.repeat-this-card }}
              if card.isRecurring
                label
 -                | Repeat every
-+                | {{_ 'repeat-every'}}
++                | {{ site.data.translations.repeat-every }}
                  select.js-recurring-pattern
 -                  option(value="daily" selected=card.recurrencePattern === 'daily') Daily
 -                  option(value="weekly" selected=card.recurrencePattern === 'weekly') Weekly
 -                  option(value="monthly" selected=card.recurrencePattern === 'monthly') Monthly
-+                  option(value="daily", selected="#{card.recurrencePattern === 'daily'}") {{_ 'daily'}}
-+                  option(value="weekly", selected="#{card.recurrencePattern === 'weekly'}") {{_ 'weekly'}}
-+                  option(value="monthly", selected="#{card.recurrencePattern === 'monthly'}") {{_ 'monthly'}}
++                  option(value="daily", selected="#{card.recurrencePattern === 'daily'}") {{ site.data.translations.daily }}
++                  option(value="weekly", selected="#{card.recurrencePattern === 'weekly'}") {{ site.data.translations.weekly }}
++                  option(value="monthly", selected="#{card.recurrencePattern === 'monthly'}") {{ site.data.translations.monthly }}
                label
 -                | End repeat on
-+                | {{_ 'end-repeat-on'}}
++                | {{ site.data.translations.end-repeat-on }}
                  input.js-recurring-end-date(type="date" value=card.recurrenceEndDate)
          if currentBoard.hasAnyAllowsUser
            hr

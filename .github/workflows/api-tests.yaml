@@ -138,6 +138,8 @@ jobs:
     - name: Generate Allure Report
       run: |
         allure generate allure-results --output allure-report --clean
+        # Add .nojekyll file to prevent GitHub Pages from processing as Jekyll
+        touch allure-report/.nojekyll
         echo "Allure report generated successfully"
 
     - name: Upload Allure Report
