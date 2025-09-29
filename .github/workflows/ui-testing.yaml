@@ -68,7 +68,17 @@ jobs:
         BROWSER: ${{ inputs.browser }}
       run: |
         mkdir -p allure-results
-        pytest tests/ -v --alluredir=allure-results
+        echo "=== Starting test execution ==="
+        echo "Test directory contents:"
+        ls -la tests/ || echo "❌ No tests directory found"
+        
+        # Run tests with Allure reporting
+        pytest tests/ -v --alluredir=allure-results || echo "❌ Tests failed or no tests found"
+        
+        echo "=== After test execution ==="
+        echo "Allure results directory:"
+        ls -la allure-results/ || echo "❌ No allure-results directory"
+        echo "JSON files count: $(find allure-results -name "*.json" 2>/dev/null | wc -l)"
 
     - name: Upload Allure Results
       uses: actions/upload-artifact@v4
@@ -107,6 +117,13 @@ jobs:
       with:
         name: ui-tests-allure-results
         path: allure-results
+
+    - name: Debug - Check downloaded artifacts
+      run: |
+        echo "=== Downloaded artifacts ==="
+        ls -la allure-results/ || echo "❌ No allure-results found"
+        echo "JSON files: $(find allure-results -name "*.json" 2>/dev/null | wc -l)"
+        echo "All files: $(find allure-results -type f 2>/dev/null | wc -l)"
 
     - name: Prepare test results for Allure
       run: |
@@ -168,9 +185,10 @@ jobs:
     - name: Deploy Allure Report to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        personal_token: ${{ secrets.UI_TESTING_GITHUB_TOKEN }}
+        external_repository: RabeeaFaraj/wekan_selenium
         publish_dir: allure-report
-        publish_branch: gh-pages-ui
+        publish_branch: gh-pages
         allow_empty_commit: false
         force_orphan: true
         keep_files: false
