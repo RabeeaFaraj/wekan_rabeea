@@ -26,6 +26,13 @@ on:
         - chrome
         - firefox
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  actions: read
+  pull-requests: write
+
 jobs:
   selenium-tests:
     runs-on: ubuntu-latest
@@ -47,16 +54,146 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install allure-pytest
 
     - name: Install Chrome and ChromeDriver
       run: |
         sudo apt-get update
         sudo apt-get install -y google-chrome-stable
 
-    - name: Run Selenium tests
+    - name: Run Selenium tests with Allure
       env:
         CI: "true"
         WEKAN_URL: http://${{ secrets.HOST }}:80
         BROWSER: ${{ inputs.browser }}
       run: |
-        pytest tests/ -v
+        mkdir -p allure-results
+        pytest tests/ -v --alluredir=allure-results
+
+    - name: Upload Allure Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ui-tests-allure-results
+        path: allure-results/
+        retention-days: 30
+
+  # Generate Allure Report
+  generate-allure-report:
+    runs-on: ubuntu-latest
+    needs: selenium-tests
+    if: always()
+    name: Generate Allure UI Test Report
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Allure CLI via npm
+      run: |
+        npm install -g allure-commandline --no-progress
+        allure --version
+
+    - name: Download test artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: ui-tests-allure-results
+        path: allure-results
+
+    - name: Prepare test results for Allure
+      run: |
+        mkdir -p allure-report
+
+        # Create environment properties for Allure
+        cat > allure-results/environment.properties << EOF
+        Service=Wekan UI Tests
+        Environment=${{ github.event.inputs.environment || 'staging' }}
+        Browser=${{ github.event.inputs.browser || 'chrome' }}
+        Commit=${{ github.sha }}
+        Branch=${{ github.ref_name }}
+        Host=${{ secrets.HOST }}
+        Build.Date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        EOF
+
+        # Create categories for test classification
+        cat > allure-results/categories.json << 'EOF'
+        [
+          {
+            "name": "UI Tests",
+            "messageRegex": ".*ui.*|.*selenium.*",
+            "traceRegex": ".*ui.*|.*selenium.*"
+          },
+          {
+            "name": "Login Tests",
+            "messageRegex": ".*login.*",
+            "traceRegex": ".*login.*"
+          },
+          {
+            "name": "Browser Issues",
+            "messageRegex": ".*webdriver.*|.*browser.*|.*chrome.*|.*firefox.*"
+          },
+          {
+            "name": "Element Not Found",
+            "messageRegex": ".*element.*not.*found.*|.*no.*such.*element.*"
+          },
+          {
+            "name": "Connection Issues",
+            "messageRegex": ".*connection.*|.*timeout.*|.*network.*"
+          }
+        ]
+        EOF
+
+    - name: Generate Allure Report
+      run: |
+        allure generate allure-results --output allure-report --clean
+        # Add .nojekyll file to prevent GitHub Pages from processing as Jekyll
+        touch allure-report/.nojekyll
+        echo "Allure UI test report generated successfully"
+
+    - name: Upload Allure Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: ui-allure-report
+        path: allure-report/
+        retention-days: 90
+
+    - name: Deploy Allure Report to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: allure-report
+        publish_branch: gh-pages-ui
+        allow_empty_commit: false
+        force_orphan: true
+        keep_files: false
+
+    - name: Comment PR with Allure Report Link
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `## 🖥️ Allure UI Test Report
+
+            **UI Test Results:** ${{ needs.selenium-tests.result }}
+
+            **Test Info:**
+            - Environment: ${{ github.event.inputs.environment || 'staging' }}
+            - Browser: ${{ github.event.inputs.browser || 'chrome' }}
+            - Host: ${{ secrets.HOST }}
+            - Commit: ${{ github.sha }}
+
+            📋 [View Detailed UI Test Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}-ui/)
+            🔗 [GitHub Pages UI Report](https://github.com/${{ github.repository }}/deployments/activity_log?environment=github-pages)`
+          })
