@@ -25,6 +25,13 @@ on:
         - chrome
         - firefox
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  actions: read
+  pull-requests: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -40,19 +47,136 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
-        pip install pytest pytest-cov
+        pip install pytest pytest-cov allure-pytest
 
-    - name: Run pytest with coverage
+    - name: Run pytest with coverage and Allure
       env:
         WEKAN_URL: http://${{ secrets.HOST }}:80/users/login
         BROWSER: ${{ inputs.browser }}
       run: |
-        pytest --cov=tests_r --cov-report=xml tests_r/
+        mkdir -p allure-results
+        pytest --cov=tests_r --cov-report=xml --alluredir=allure-results tests_r/
+
+    - name: Upload Allure Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: api-tests-allure-results
+        path: allure-results/
+        retention-days: 30
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
       with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: RabeeaFaraj/wekan_rabeea
+
+  # Generate Allure Report
+  generate-allure-report:
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    name: Generate Allure Test Report
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install Allure CLI via npm
+      run: |
+        npm install -g allure-commandline --no-progress
+        allure --version
+
+    - name: Download test artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: api-tests-allure-results
+        path: allure-results
+
+    - name: Prepare test results for Allure
+      run: |
+        mkdir -p allure-report
+
+        # Create environment properties for Allure
+        cat > allure-results/environment.properties << EOF
+        Service=Wekan API
+        Environment=${{ github.event.inputs.environment || 'staging' }}
+        Commit=${{ github.sha }}
+        Branch=${{ github.ref_name }}
+        Host=${{ secrets.HOST }}
+        Build.Date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        EOF
+
+        # Create categories for test classification
+        cat > allure-results/categories.json << 'EOF'
+        [
+          {
+            "name": "API Tests",
+            "messageRegex": ".*api.*",
+            "traceRegex": ".*api.*"
+          },
+          {
+            "name": "Login Tests",
+            "messageRegex": ".*login.*",
+            "traceRegex": ".*login.*"
+          },
+          {
+            "name": "Connection Issues",
+            "messageRegex": ".*connection.*|.*timeout.*|.*network.*"
+          }
+        ]
+        EOF
+
+    - name: Generate Allure Report
+      run: |
+        allure generate allure-results --output allure-report --clean
+        echo "Allure report generated successfully"
+
+    - name: Upload Allure Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: allure-report
+        path: allure-report/
+        retention-days: 90
+
+    - name: Deploy Allure Report to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: allure-report
+        publish_branch: gh-pages
+        allow_empty_commit: false
+        force_orphan: true
+        keep_files: false
+
+    - name: Comment PR with Allure Report Link
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `## 📊 Allure Test Report
+
+            **API Test Results:** ${{ needs.test.result }}
+
+            **Test Info:**
+            - Environment: ${{ github.event.inputs.environment || 'staging' }}
+            - Host: ${{ secrets.HOST }}
+            - Commit: ${{ github.sha }}
+
+            📋 [View Detailed Allure Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)
+            🔗 [GitHub Pages Report](https://github.com/${{ github.repository }}/deployments/activity_log?environment=github-pages)`
+          })
 
 
