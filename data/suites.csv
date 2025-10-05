@@ -1,0 +1,5 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","323","test_user_login_missing_fields","tests_r","Sun Oct 05 04:14:24 UTC 2025","passed","Sun Oct 05 04:14:24 UTC 2025","TestUserLogin","test_endpoint","",""
+"","389","test_user_login_success","tests_r","Sun Oct 05 04:14:25 UTC 2025","passed","Sun Oct 05 04:14:25 UTC 2025","TestUserLogin","test_endpoint","",""
+"","314","test_user_login_nonexistent_user","tests_r","Sun Oct 05 04:14:24 UTC 2025","passed","Sun Oct 05 04:14:25 UTC 2025","TestUserLogin","test_endpoint","",""
+"","316","test_user_login_wrong_password","tests_r","Sun Oct 05 04:14:25 UTC 2025","passed","Sun Oct 05 04:14:25 UTC 2025","TestUserLogin","test_endpoint","",""
